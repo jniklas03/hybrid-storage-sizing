@@ -1,6 +1,14 @@
 import math
+from collections.abc import Callable
 
 import numpy as np
+from simses.battery import Battery
+from simses.battery.cell import CellType
+from simses.converter import Converter
+from simses.converter.converter import ConverterLossModel
+from simses.model.cell.skeleton_SCA import SCA3200
+from simses.model.cell.sony_lfp import SonyLFP
+from simses.model.converter.fix_efficiency import FixedEfficiency
 
 
 class HybridController:
@@ -38,6 +46,51 @@ class HybridController:
 
         # cumulative request [Wh]
         self.e_request_thr = 0.0
+
+    @classmethod
+    def build_controller(
+        cls,
+        tau: float,
+        bat_cell: type[CellType] = SonyLFP,
+        sc_cell: type[CellType] = SCA3200,
+        bat_series: int = 16,
+        bat_parallel: int = 20,
+        sc_series: int = 22,
+        sc_parallel: int = 3,
+        converter_model: Callable[[], ConverterLossModel] = lambda: FixedEfficiency(0.98),
+
+    ):
+        battery = Battery(
+            cell=bat_cell(),
+            circuit=(bat_series, bat_parallel),
+            initial_states={
+                "start_soc": 0.6,
+                "start_T": 25.0,
+            },
+        )
+        
+        sc = Battery(
+            cell=sc_cell(),
+            circuit=(sc_series, sc_parallel),
+            initial_states={
+                "start_soc": 0.6,
+                "start_T": 25.0,
+            },
+        )
+
+        supercap_converter = Converter(
+            loss_model=converter_model(),
+            max_power=20e3,
+            storage=sc,
+        )
+
+        battery_converter = Converter(
+            loss_model=converter_model(),
+            max_power=20e3,
+            storage=battery,
+        )
+
+        return cls(battery_converter, supercap_converter, tau)
 
 
     def _calc_split(self, p_request, dt):
