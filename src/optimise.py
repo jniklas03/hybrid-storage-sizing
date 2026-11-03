@@ -3,7 +3,7 @@ from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 
-from hess import HybridController
+from src.hess import HybridController
 
 
 def _worker_no_log(args):
