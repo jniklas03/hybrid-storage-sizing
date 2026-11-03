@@ -295,7 +295,7 @@ wheels = [
 ]
 
 [[package]]
-name = "huawei-data"
+name = "hybrid-storage-sizing"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
